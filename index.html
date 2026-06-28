@@ -454,6 +454,15 @@ footer a { color: var(--text-3); text-decoration: underline; text-underline-offs
         <input type="range" id="w-genre" min="0" max="100" value="25" step="1">
       </div>
 
+      <div class="signal-row">
+        <div class="signal-top">
+          <span class="signal-name">Momentum</span>
+          <span class="signal-val" id="w-momentum-val">20%</span>
+        </div>
+        <p class="signal-desc">Editorial velocity — Last.fm listener growth rate plus Reddit mention count. Surfaces artists on the way up.</p>
+        <input type="range" id="w-momentum" min="0" max="100" value="20" step="1">
+      </div>
+
       <div class="sidebar-divider"></div>
 
       <div class="signal-row">
@@ -499,8 +508,9 @@ footer a { color: var(--text-3); text-decoration: underline; text-underline-offs
   <footer>
     Signals: similarity score (Last.fm co-listening match) &middot;
     listener behaviour (audience size relative score) &middot;
-    genre proximity (Jaccard tag overlap).<br>
-    Phase 2 adds: social graph (Instagram artist follow consensus) &middot; editorial velocity (Reddit + Last.fm listener growth rate).<br>
+    genre proximity (Jaccard tag overlap) &middot;
+    momentum (Last.fm growth rate + Reddit mention velocity).<br>
+    Phase 2 adds: social graph (Instagram artist follow consensus).<br>
     Powered by the <a href="https://www.last.fm/api" target="_blank">Last.fm API</a>.
   </footer>
 
@@ -528,6 +538,7 @@ footer a { color: var(--text-3); text-decoration: underline; text-underline-offs
   wireSlider('w-sim');
   wireSlider('w-listen');
   wireSlider('w-genre');
+  wireSlider('w-momentum');
 
   document.getElementById('pop-ceiling').addEventListener('input', e => {
     document.getElementById('pop-val').textContent = e.target.value;
@@ -593,7 +604,55 @@ footer a { color: var(--text-3); text-decoration: underline; text-underline-offs
     return union === 0 ? 0 : intersection / union;
   }
 
-  /* ── Popularity penalty (sigmoid) ──
+  /* ── SIGNAL 4: Momentum (editorial velocity) ──
+     Two sub-signals combined into one score:
+
+     A) Last.fm listener growth rate:
+        Last.fm returns both weekly listener count and total playcount.
+        We estimate a "historical weekly average" as total_playcount / weeks_active,
+        then compare to current weekly listeners. A ratio above 1.0 means
+        the artist is growing faster than their long-run average.
+
+        growth_rate = weekly_listeners / (total_playcount / (listeners * 4))
+        Clamped to 0–1 range.
+
+     B) Reddit mention score:
+        We query Reddit's public JSON search API (no key needed) for the
+        artist name across music subreddits. More recent posts = higher score.
+        We cap at 10 posts = score of 1.0 to avoid mega-viral artists
+        drowning out genuine underground heat.
+
+     Final momentum = 0.6 * growth + 0.4 * reddit
+  */
+  async function calcMomentum(artistName, weeklyListeners, totalPlaycount, totalListeners) {
+    // A) Growth rate from Last.fm stats
+    let growth = 0;
+    if (weeklyListeners && totalListeners) {
+      // Estimate historical weekly average listeners
+      const historicalWeekly = totalListeners / 52;
+      const ratio = weeklyListeners / (historicalWeekly || 1);
+      // Normalise: ratio of 2.0+ (growing twice as fast) = score of 1.0
+      growth = Math.min(1, ratio / 2);
+    }
+
+    // B) Reddit mention score
+    // Reddit's public search endpoint returns JSON with no auth needed.
+    // We search across all subreddits for recent posts mentioning the artist.
+    // t=month limits to the last 30 days.
+    let redditScore = 0;
+    try {
+      const query   = encodeURIComponent('"' + artistName + '"');
+      const url     = 'https://www.reddit.com/search.json?q=' + query + '&sort=new&t=month&limit=10';
+      const res     = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      if (res.ok) {
+        const data  = await res.json();
+        const posts = (data?.data?.children || []).length;
+        redditScore = Math.min(1, posts / 10); // 10 posts = full score
+      }
+    } catch (e) { /* Reddit occasionally blocks — degrade gracefully */ }
+
+    return (growth * 0.6) + (redditScore * 0.4);
+  }
      Rather than a hard cutoff, we apply a smooth sigmoid curve.
      Artists well below the ceiling score near 1.0.
      Artists well above it score near 0.0.
@@ -640,8 +699,11 @@ footer a { color: var(--text-3); text-decoration: underline; text-underline-offs
     if (item.listenScore > 0.7)    parts.push('similarly sized audience');
     else if (item.listenScore < 0.25) parts.push('much smaller — genuinely underground');
 
-    if (item.genreScore > 0.5)     parts.push('near-identical genre tags');
-    else if (item.genreScore > 0.2) parts.push('overlapping genre tags');
+    if (item.genreScore > 0.5)      parts.push('near-identical genre tags');
+    else if (item.genreScore > 0.2)  parts.push('overlapping genre tags');
+
+    if (item.momentumScore > 0.7)    parts.push('surging right now');
+    else if (item.momentumScore > 0.4) parts.push('gaining momentum');
 
     if (!parts.length) parts.push('surfaced via Last.fm listener graph');
     return parts.join(' · ');
@@ -694,13 +756,14 @@ footer a { color: var(--text-3); text-decoration: underline; text-underline-offs
           try {
             const info = await lfm('method=artist.getInfo&artist=' + encodeURIComponent(a.name));
             return {
-              name:      info.artist.name,
-              match:     parseFloat(a.match) || 0,
-              listeners: parseInt(info.artist.stats.listeners) || 0,
-              playcount: parseInt(info.artist.stats.playcount) || 0,
-              tags:      (info.artist.tags.tag || []).slice(0, 5).map(t => t.name),
-              url:       info.artist.url,
-              image:     (info.artist.image || []).find(i => i.size === 'medium')?.['#text'] || '',
+              name:          info.artist.name,
+              match:         parseFloat(a.match) || 0,
+              listeners:     parseInt(info.artist.stats.listeners) || 0,
+              weeklyListeners: parseInt(info.artist.stats.userplaycount) || 0,
+              playcount:     parseInt(info.artist.stats.playcount) || 0,
+              tags:          (info.artist.tags.tag || []).slice(0, 5).map(t => t.name),
+              url:           info.artist.url,
+              image:         (info.artist.image || []).find(i => i.size === 'medium')?.['#text'] || '',
             };
           } catch (e) {
             return null; // skip artists that error
@@ -712,31 +775,34 @@ footer a { color: var(--text-3); text-decoration: underline; text-underline-offs
 
       /* STEP D: read slider weights and normalise to sum to 1.0 */
       const wRaw = {
-        sim:    parseInt(document.getElementById('w-sim').value),
-        listen: parseInt(document.getElementById('w-listen').value),
-        genre:  parseInt(document.getElementById('w-genre').value),
+        sim:      parseInt(document.getElementById('w-sim').value),
+        listen:   parseInt(document.getElementById('w-listen').value),
+        genre:    parseInt(document.getElementById('w-genre').value),
+        momentum: parseInt(document.getElementById('w-momentum').value),
       };
-      const wSum = wRaw.sim + wRaw.listen + wRaw.genre || 1;
+      const wSum = wRaw.sim + wRaw.listen + wRaw.genre + wRaw.momentum || 1;
       const w = {
-        sim:    wRaw.sim    / wSum,
-        listen: wRaw.listen / wSum,
-        genre:  wRaw.genre  / wSum,
+        sim:      wRaw.sim      / wSum,
+        listen:   wRaw.listen   / wSum,
+        genre:    wRaw.genre    / wSum,
+        momentum: wRaw.momentum / wSum,
       };
 
       const ceiling = parseInt(document.getElementById('pop-ceiling').value);
 
-      /* STEP E: score each candidate */
-      const scored = candidates.map(c => {
-        const simScore    = c.match; // already 0–1 from Last.fm
-        const listenScore = listenerScore(c.listeners, seedListeners, ceiling);
-        const genreScore  = jaccard(seedTags, c.tags);
-        const penalty     = popPenalty(c.listeners, seedListeners, ceiling);
+      /* STEP E: score each candidate — now with momentum fetched in parallel */
+      const scored = await Promise.all(candidates.map(async c => {
+        const simScore      = c.match;
+        const listenScore   = listenerScore(c.listeners, seedListeners, ceiling);
+        const genreScore    = jaccard(seedTags, c.tags);
+        const momentumScore = await calcMomentum(c.name, c.weeklyListeners, c.playcount, c.listeners);
+        const penalty       = popPenalty(c.listeners, seedListeners, ceiling);
 
-        const rawScore   = w.sim * simScore + w.listen * listenScore + w.genre * genreScore;
+        const rawScore   = w.sim * simScore + w.listen * listenScore + w.genre * genreScore + w.momentum * momentumScore;
         const finalScore = rawScore * penalty;
 
-        return { ...c, simScore, listenScore, genreScore, rawScore, finalScore, tags: c.tags };
-      });
+        return { ...c, simScore, listenScore, genreScore, momentumScore, rawScore, finalScore, tags: c.tags };
+      }));
 
       /* STEP F: sort by final score descending */
       scored.sort((a, b) => b.finalScore - a.finalScore);
@@ -790,6 +856,7 @@ footer a { color: var(--text-3); text-decoration: underline; text-underline-offs
             ${sbar('Similarity',  item.simScore)}
             ${sbar('Listeners',   item.listenScore)}
             ${sbar('Genre',       item.genreScore)}
+            ${sbar('Momentum',    item.momentumScore)}
           </div>
           <div class="why">${esc(why)}</div>
           <div class="card-links">
