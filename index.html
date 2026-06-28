@@ -5,27 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Discover — find your next favourite artist</title>
 <style>
-/* ─
-   DESIGN TOKENS
-   All colours, sizes, and spacing live here.
-   Change these and the whole page updates.
-─ */
 :root {
-  --bg:           #0a0a0a;
-  --surface:      #131313;
-  --surface2:     #1c1c1c;
-  --surface3:     #242424;
-  --border:       rgba(255,255,255,0.07);
-  --border-mid:   rgba(255,255,255,0.12);
-  --border-hi:    rgba(255,255,255,0.22);
-  --text:         #eeebe6;
-  --text-2:       #9b9893;
-  --text-3:       #5a5856;
-  --accent:       #c8f04a;
-  --accent-bg:    rgba(200,240,74,0.10);
-  --accent-bdr:   rgba(200,240,74,0.22);
-  --red:          #e05252;
-  --r: 10px;
+  --bg:         #0a0a0a;
+  --surface:    #131313;
+  --surface2:   #1c1c1c;
+  --surface3:   #242424;
+  --border:     rgba(255,255,255,0.07);
+  --border-mid: rgba(255,255,255,0.12);
+  --border-hi:  rgba(255,255,255,0.22);
+  --text:       #eeebe6;
+  --text-2:     #9b9893;
+  --text-3:     #5a5856;
+  --accent:     #c8f04a;
+  --accent-bg:  rgba(200,240,74,0.10);
+  --accent-bdr: rgba(200,240,74,0.22);
+  --red:        #e05252;
+  --r:          10px;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -37,7 +32,6 @@ body {
   min-height: 100vh;
 }
 
-/* ─ layout shell  */
 .shell {
   max-width: 900px;
   margin: 0 auto;
@@ -48,7 +42,6 @@ body {
   gap: 0 2rem;
 }
 
-/* ─ header  */
 header {
   grid-column: 1 / -1;
   padding: 3rem 0 2rem;
@@ -89,7 +82,6 @@ header {
   flex-shrink: 0;
 }
 
-/* ─ search bar  */
 .search-area {
   grid-column: 1 / -1;
   margin-bottom: 2rem;
@@ -144,30 +136,6 @@ header {
   color: var(--text-3);
 }
 
-/* ─ config warning  */
-.config-banner {
-  grid-column: 1 / -1;
-  background: rgba(224,82,82,0.08);
-  border: 0.5px solid rgba(224,82,82,0.25);
-  border-radius: var(--r);
-  padding: 1rem 1.2rem;
-  font-size: 13px;
-  color: #e89292;
-  line-height: 1.7;
-  margin-bottom: 1.5rem;
-  display: none;
-}
-
-.config-banner code {
-  background: rgba(255,255,255,0.07);
-  padding: 1px 5px;
-  border-radius: 4px;
-  font-size: 12px;
-}
-
-.config-banner a { color: #e89292; }
-
-/* ─ sidebar: signal controls  */
 .sidebar {
   grid-column: 2;
   grid-row: 3;
@@ -191,10 +159,7 @@ header {
   margin-bottom: 1.2rem;
 }
 
-/* sliders */
-.signal-row {
-  margin-bottom: 1.1rem;
-}
+.signal-row { margin-bottom: 1.1rem; }
 
 .signal-top {
   display: flex;
@@ -203,19 +168,8 @@ header {
   margin-bottom: 0.35rem;
 }
 
-.signal-name {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text);
-}
-
-.signal-val {
-  font-size: 12px;
-  color: var(--accent);
-  font-weight: 600;
-  min-width: 32px;
-  text-align: right;
-}
+.signal-name { font-size: 13px; font-weight: 500; color: var(--text); }
+.signal-val  { font-size: 12px; color: var(--accent); font-weight: 600; min-width: 32px; text-align: right; }
 
 .signal-desc {
   font-size: 11px;
@@ -236,8 +190,7 @@ input[type="range"] {
 
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 14px;
-  height: 14px;
+  width: 14px; height: 14px;
   border-radius: 50%;
   background: var(--accent);
   cursor: pointer;
@@ -247,16 +200,7 @@ input[type="range"]::-webkit-slider-thumb {
 
 input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 
-.sidebar-divider {
-  height: 0.5px;
-  background: var(--border);
-  margin: 1.2rem 0;
-}
-
-/* popularity ceiling */
-.pop-row {
-  margin-bottom: 0;
-}
+.sidebar-divider { height: 0.5px; background: var(--border); margin: 1.2rem 0; }
 
 .pop-labels {
   display: flex;
@@ -266,7 +210,6 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   margin-top: 0.3rem;
 }
 
-/* diversity toggle */
 .toggle-row {
   display: flex;
   align-items: center;
@@ -274,33 +217,14 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   margin-top: 1rem;
 }
 
-.toggle-label {
-  font-size: 13px;
-  color: var(--text);
-}
+.toggle-label { font-size: 13px; color: var(--text); }
+.toggle-sub   { font-size: 11px; color: var(--text-3); }
 
-.toggle-sub {
-  font-size: 11px;
-  color: var(--text-3);
-}
-
-.toggle-switch {
-  position: relative;
-  width: 34px;
-  height: 20px;
-  flex-shrink: 0;
-}
-
-.toggle-switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-  position: absolute;
-}
+.toggle-switch { position: relative; width: 34px; height: 20px; flex-shrink: 0; }
+.toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
 
 .toggle-track {
-  position: absolute;
-  inset: 0;
+  position: absolute; inset: 0;
   background: var(--surface3);
   border-radius: 10px;
   cursor: pointer;
@@ -322,13 +246,8 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 
 .toggle-switch input:checked + .toggle-track::after { transform: translateX(14px); }
 
-/* ─ main results column  */
-.main-col {
-  grid-column: 1;
-  grid-row: 3;
-}
+.main-col { grid-column: 1; grid-row: 3; }
 
-/* seed bar */
 .seed-bar {
   display: none;
   align-items: center;
@@ -341,13 +260,7 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 .seed-line  { flex: 1; height: 0.5px; background: var(--border); }
 .seed-count { font-size: 12px; color: var(--text-3); }
 
-/* state boxes */
-.state-box {
-  display: none;
-  padding: 3rem 0;
-  text-align: center;
-}
-
+.state-box { display: none; padding: 3rem 0; text-align: center; }
 .state-box p { font-size: 14px; color: var(--text-2); line-height: 1.7; }
 
 .spinner {
@@ -361,7 +274,6 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ─ artist cards  */
 .results { display: flex; flex-direction: column; gap: 8px; }
 
 .card {
@@ -374,21 +286,15 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   gap: 0.9rem;
   align-items: start;
   transition: border-color 0.15s, background 0.15s;
-  cursor: default;
 }
 
-.card:hover {
-  border-color: var(--border-mid);
-  background: var(--surface2);
-}
+.card:hover { border-color: var(--border-mid); background: var(--surface2); }
 
 .card-img {
   width: 52px; height: 52px;
   border-radius: 6px;
   object-fit: cover;
   background: var(--surface2);
-  display: block;
-  flex-shrink: 0;
 }
 
 .card-img-placeholder {
@@ -400,7 +306,6 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   justify-content: center;
   font-size: 20px;
   color: var(--text-3);
-  flex-shrink: 0;
 }
 
 .card-top {
@@ -414,14 +319,10 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 .card-name { font-size: 15px; font-weight: 600; line-height: 1.2; }
 
 .badge {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 2px 7px;
-  border-radius: 4px;
-  white-space: nowrap;
-  flex-shrink: 0;
+  font-size: 10px; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 2px 7px; border-radius: 4px;
+  white-space: nowrap; flex-shrink: 0;
 }
 
 .badge-discovery { color: var(--accent); background: var(--accent-bg); border: 0.5px solid var(--accent-bdr); }
@@ -429,82 +330,51 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 
 .card-genres { font-size: 12px; color: var(--text-3); margin-bottom: 0.7rem; }
 
-/* score bars inside card */
 .score-bars { margin-bottom: 0.75rem; }
 
-.sbar {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  margin-bottom: 4px;
-}
+.sbar { display: flex; align-items: center; gap: 7px; margin-bottom: 4px; }
 
 .sbar-label {
-  font-size: 10px;
-  color: var(--text-3);
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  width: 78px;
-  flex-shrink: 0;
+  font-size: 10px; color: var(--text-3);
+  text-transform: uppercase; letter-spacing: 0.07em;
+  width: 78px; flex-shrink: 0;
 }
 
-.sbar-track {
-  flex: 1;
-  height: 2px;
-  background: var(--surface3);
-  border-radius: 1px;
-  overflow: hidden;
-}
+.sbar-track { flex: 1; height: 2px; background: var(--surface3); border-radius: 1px; overflow: hidden; }
 
 .sbar-fill {
-  height: 100%;
-  border-radius: 1px;
+  height: 100%; border-radius: 1px;
   background: var(--accent);
   transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
 }
 
 .sbar-fill.muted { background: var(--border-hi); }
+.sbar-pct { font-size: 10px; color: var(--text-3); width: 26px; text-align: right; flex-shrink: 0; }
 
-.sbar-pct {
-  font-size: 10px;
-  color: var(--text-3);
-  width: 26px;
-  text-align: right;
-  flex-shrink: 0;
-}
-
-/* why sentence */
 .why {
-  font-size: 12px;
-  color: var(--text-2);
-  font-style: italic;
-  line-height: 1.5;
+  font-size: 12px; color: var(--text-2);
+  font-style: italic; line-height: 1.5;
   margin-bottom: 0.75rem;
 }
 
-/* links */
 .card-links { display: flex; gap: 6px; flex-wrap: wrap; }
 
 .lbtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  font-weight: 500;
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 500;
   text-decoration: none;
-  padding: 4px 9px;
-  border-radius: 5px;
+  padding: 4px 9px; border-radius: 5px;
   border: 0.5px solid var(--border-mid);
   color: var(--text-3);
   transition: color 0.12s, border-color 0.12s;
 }
 
-.lbtn:hover            { color: var(--text); border-color: var(--border-hi); }
-.lbtn.spotify:hover    { color: #1DB954; border-color: #1DB954; }
-.lbtn.apple:hover      { color: #fc3c44; border-color: #fc3c44; }
-.lbtn.bandcamp:hover   { color: #1da0c3; border-color: #1da0c3; }
+.lbtn:hover           { color: var(--text); border-color: var(--border-hi); }
+.lbtn.lastfm:hover    { color: #d51007; border-color: #d51007; }
+.lbtn.spotify:hover   { color: #1DB954; border-color: #1DB954; }
+.lbtn.apple:hover     { color: #fc3c44; border-color: #fc3c44; }
+.lbtn.bandcamp:hover  { color: #1da0c3; border-color: #1da0c3; }
 
-/* ─ footer  */
 footer {
   grid-column: 1 / -1;
   margin-top: 3rem;
@@ -518,7 +388,6 @@ footer {
 
 footer a { color: var(--text-3); text-decoration: underline; text-underline-offset: 2px; }
 
-/* ─ responsive  */
 @media (max-width: 640px) {
   .shell { grid-template-columns: 1fr; }
   .sidebar { grid-column: 1; grid-row: auto; }
@@ -530,37 +399,20 @@ footer a { color: var(--text-3); text-decoration: underline; text-underline-offs
 </head>
 <body>
 
-<!--
-  
-    STEP 1: PASTE YOUR CREDENTIALS HERE 
-    Get them free at:                   
-    developer.spotify.com/dashboard     
-  
--->
 <script>
-  const CLIENT_ID     = '0e0c7248a0ce4bc3938e19a3327d0641';
-  const CLIENT_SECRET = '78aa5704448c490baecf612c46582f05';
+  const LASTFM_KEY = 'c0f47e3616a41eefbba2ffd139279bba';
 </script>
 
 <div class="shell">
 
-  <!-- ─ CONFIG WARNING (shown if credentials missing)  -->
-  <div id="config-banner" class="config-banner">
-    Paste your Spotify credentials at the top of this file to activate.<br>
-    Get them free at <a href="https://developer.spotify.com/dashboard" target="_blank">developer.spotify.com/dashboard</a> —
-    create an app, copy <code>Client ID</code> and <code>Client Secret</code> into the two variables at line 1.
-  </div>
-
-  <!-- ─ HEADER  -->
   <header>
     <div class="header-text">
       <h1>Find your next<br>favourite artist</h1>
-      <p>Enter an artist you love. Three signals — audio texture, listener behaviour, and genre distance — surface acts you probably haven't heard.</p>
+      <p>Enter an artist you love. Three signals — similarity score, listener behaviour, and genre proximity — surface acts you probably haven't heard.</p>
     </div>
     <span class="phase-badge">Phase 1</span>
   </header>
 
-  <!-- ─ SEARCH  -->
   <div class="search-area">
     <div class="search-row">
       <input id="artist-input" type="text"
@@ -571,57 +423,51 @@ footer a { color: var(--text-3); text-decoration: underline; text-underline-offs
     <p class="search-hint">Press Enter or click Discover</p>
   </div>
 
-  <!-- ─ SIDEBAR: SIGNAL CONTROLS  -->
   <aside class="sidebar">
     <div class="sidebar-card">
       <p class="sidebar-title">Signal weights</p>
 
-      <!-- Audio distribution -->
       <div class="signal-row">
         <div class="signal-top">
-          <span class="signal-name">Audio texture</span>
-          <span class="signal-val" id="w-audio-val">40%</span>
+          <span class="signal-name">Similarity score</span>
+          <span class="signal-val" id="w-sim-val">40%</span>
         </div>
-        <p class="signal-desc">Bhattacharyya distance on energy, danceability, acousticness, valence, and instrumentalness distributions.</p>
-        <input type="range" id="w-audio" min="0" max="100" value="40" step="1">
+        <p class="signal-desc">Last.fm's similarity match score between seed and candidate — derived from listener co-occurrence across millions of users.</p>
+        <input type="range" id="w-sim" min="0" max="100" value="40" step="1">
       </div>
 
-      <!-- Co-listening -->
       <div class="signal-row">
         <div class="signal-top">
           <span class="signal-name">Listener behaviour</span>
           <span class="signal-val" id="w-listen-val">35%</span>
         </div>
-        <p class="signal-desc">Co-listening proximity via Spotify's related artist graph — artists whose audiences significantly overlap.</p>
+        <p class="signal-desc">Relative listener count — rewards artists with a meaningful but not massive audience.</p>
         <input type="range" id="w-listen" min="0" max="100" value="35" step="1">
       </div>
 
-      <!-- Genre distance -->
       <div class="signal-row">
         <div class="signal-top">
           <span class="signal-name">Genre proximity</span>
           <span class="signal-val" id="w-genre-val">25%</span>
         </div>
-        <p class="signal-desc">Tag overlap between seed and candidate — blunt but fast. Weighted lower intentionally.</p>
+        <p class="signal-desc">Jaccard tag overlap between seed and candidate genre tags. Weighted lower — tags are coarse.</p>
         <input type="range" id="w-genre" min="0" max="100" value="25" step="1">
       </div>
 
       <div class="sidebar-divider"></div>
 
-      <!-- Popularity ceiling -->
-      <div class="signal-row pop-row">
+      <div class="signal-row">
         <div class="signal-top">
           <span class="signal-name">Popularity ceiling</span>
           <span class="signal-val" id="pop-val">70</span>
         </div>
-        <p class="signal-desc">Artists above this Spotify popularity score are penalised. Lower = more underground.</p>
+        <p class="signal-desc">Artists above this listener percentile are penalised. Lower = more underground.</p>
         <input type="range" id="pop-ceiling" min="10" max="100" value="70" step="1">
         <div class="pop-labels"><span>Underground</span><span>Mainstream OK</span></div>
       </div>
 
       <div class="sidebar-divider"></div>
 
-      <!-- Diversity toggle -->
       <div class="toggle-row">
         <div>
           <div class="toggle-label">Genre diversity</div>
@@ -632,14 +478,10 @@ footer a { color: var(--text-3); text-decoration: underline; text-underline-offs
           <span class="toggle-track"></span>
         </label>
       </div>
-
     </div>
   </aside>
 
-  <!-- ─ MAIN RESULTS COLUMN  -->
   <main class="main-col">
-
-    <!-- seed artist context bar -->
     <div id="seed-bar" class="seed-bar">
       <span class="seed-label">Seed</span>
       <span id="seed-name" class="seed-name"></span>
@@ -647,291 +489,165 @@ footer a { color: var(--text-3); text-decoration: underline; text-underline-offs
       <span id="seed-count" class="seed-count"></span>
     </div>
 
-    <!-- loading / empty / error states -->
     <div id="state-box" class="state-box">
       <div id="state-inner"></div>
     </div>
 
-    <!-- results -->
     <div id="results" class="results"></div>
-
   </main>
 
-  <!-- ─ FOOTER  -->
   <footer>
-    Signals: audio texture (Bhattacharyya distance on Spotify audio features) ·
-    listener behaviour (Spotify related artist graph) ·
-    genre proximity (tag overlap).<br>
-    Phase 2 adds: social graph (Instagram follow consensus) · editorial velocity (Reddit + Last.fm growth).<br>
-    Powered by the <a href="https://developer.spotify.com" target="_blank">Spotify Web API</a>.
-    Credentials are client-side only and never stored.
+    Signals: similarity score (Last.fm co-listening match) &middot;
+    listener behaviour (audience size relative score) &middot;
+    genre proximity (Jaccard tag overlap).<br>
+    Phase 2 adds: social graph (Instagram artist follow consensus) &middot; editorial velocity (Reddit + Last.fm listener growth rate).<br>
+    Powered by the <a href="https://www.last.fm/api" target="_blank">Last.fm API</a>.
   </footer>
 
-</div><!-- /shell -->
+</div>
 
-
-<!-- 
-     ALGORITHM ENGINE
-     Read this section to understand every scoring decision.
- -->
 <script>
 (function () {
 
-  /* ─ 0. DOM refs  */
-  const input      = document.getElementById('artist-input');
-  const btn        = document.getElementById('search-btn');
-  const resultsEl  = document.getElementById('results');
-  const stateBox   = document.getElementById('state-box');
-  const stateInner = document.getElementById('state-inner');
-  const seedBar    = document.getElementById('seed-bar');
-  const seedNameEl = document.getElementById('seed-name');
-  const seedCountEl= document.getElementById('seed-count');
-  const banner     = document.getElementById('config-banner');
+  const input       = document.getElementById('artist-input');
+  const btn         = document.getElementById('search-btn');
+  const resultsEl   = document.getElementById('results');
+  const stateBox    = document.getElementById('state-box');
+  const stateInner  = document.getElementById('state-inner');
+  const seedBar     = document.getElementById('seed-bar');
+  const seedNameEl  = document.getElementById('seed-name');
+  const seedCountEl = document.getElementById('seed-count');
 
-  /* ─ 1. GUARD: check credentials  */
-  if (CLIENT_ID === 'YOUR_CLIENT_ID_HERE') {
-    banner.style.display = 'block';
-    btn.disabled = true;
+  /* ── Slider wiring ── */
+  function wireSlider(id) {
+    const el = document.getElementById(id);
+    el.addEventListener('input', () => {
+      document.getElementById(id + '-val').textContent = el.value + '%';
+    });
   }
+  wireSlider('w-sim');
+  wireSlider('w-listen');
+  wireSlider('w-genre');
 
-  /* ─ 2. SLIDER wiring 
-     Each slider updates its display value in real time.
-     We normalise all three signal weights to sum to 1.0
-     inside the scoring function, so users don't need to
-     manually balance them — they just express preference.
-  ─ */
-  const sliders = {
-    audio:  document.getElementById('w-audio'),
-    listen: document.getElementById('w-listen'),
-    genre:  document.getElementById('w-genre'),
-  };
-
-  function updateSliderDisplay(id, val) {
-    document.getElementById(id + '-val').textContent = val + '%';
-  }
-
-  sliders.audio.addEventListener('input',  e => updateSliderDisplay('w-audio',  e.target.value));
-  sliders.listen.addEventListener('input', e => updateSliderDisplay('w-listen', e.target.value));
-  sliders.genre.addEventListener('input',  e => updateSliderDisplay('w-genre',  e.target.value));
-
-  const popSlider = document.getElementById('pop-ceiling');
-  popSlider.addEventListener('input', e => {
+  document.getElementById('pop-ceiling').addEventListener('input', e => {
     document.getElementById('pop-val').textContent = e.target.value;
   });
 
-  /* ─ 3. SPOTIFY AUTH 
-     Client Credentials flow: we POST our client ID + secret
-     to Spotify's token endpoint, get back a short-lived
-     access token (valid 1 hour), then use it on every
-     subsequent API call via an Authorization header.
-
-     NOTE: This exposes the secret client-side. Fine for a
-     portfolio demo. For production, move auth to a server.
-  ─ */
-  let _token = null;
-  let _tokenExpiry = 0;
-
-  async function getToken() {
-    if (_token && Date.now() < _tokenExpiry) return _token;
-    const res = await fetch('https://accounts.spotify.com/api/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': 'Basic ' + btoa(CLIENT_ID + ':' + CLIENT_SECRET),
-      },
-      body: 'grant_type=client_credentials',
-    });
+  /* ── Last.fm API helper ──
+     Last.fm returns JSON via a simple GET with your API key.
+     No auth token needed — just the key in the query string.
+     CORS is supported so calls work directly from the browser.
+  */
+  async function lfm(params) {
+    const base = 'https://ws.audioscrobbler.com/2.0/';
+    const url  = base + '?api_key=' + LASTFM_KEY + '&format=json&' + params;
+    const res  = await fetch(url);
+    if (!res.ok) throw new Error('Last.fm API error: ' + res.status);
     const data = await res.json();
-    if (!data.access_token) throw new Error('Spotify auth failed. Check your Client ID and Secret.');
-    _token = data.access_token;
-    _tokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
-    return _token;
+    if (data.error) throw new Error('Last.fm: ' + data.message + ' (error ' + data.error + ')');
+    return data;
   }
 
-  async function api(path) {
-    const t = await getToken();
-    const res = await fetch('https://api.spotify.com/v1' + path, {
-      headers: { Authorization: 'Bearer ' + t },
-    });
-    if (!res.ok) throw new Error('Spotify API error ' + res.status + ' on ' + path);
-    return res.json();
+  /* ── SIGNAL 1: Similarity score ──
+     Last.fm's artist.getSimilar returns a list of similar artists
+     each with a "match" score between 0 and 1. This is derived from
+     millions of listeners' co-listening patterns — if people who
+     listen to Radiohead also frequently listen to Portishead, their
+     match score will be high. This is our strongest signal.
+  */
+
+  /* ── SIGNAL 2: Listener behaviour ──
+     Last.fm exposes raw listener counts per artist. We use this
+     to score artists relative to the seed — rewarding those with
+     a meaningful audience but penalising those who are too massive.
+     We normalise by dividing candidate listeners by seed listeners,
+     then apply the popularity ceiling as a soft cap.
+  */
+  function listenerScore(candidateListeners, seedListeners, ceiling) {
+    if (!seedListeners) return 0.5;
+    // Express candidate as a fraction of seed's audience
+    const ratio = candidateListeners / seedListeners;
+    // Ceiling maps to a ratio threshold — above ceiling/100, penalise
+    const ceilRatio = ceiling / 100;
+    if (ratio > ceilRatio * 3) return 0.1;   // way too big
+    if (ratio > ceilRatio)     return 0.4;   // over ceiling, partial penalty
+    if (ratio < 0.001)         return 0.2;   // too obscure to be useful
+    return Math.min(1, ratio / ceilRatio);   // sweet spot: scales 0→1
   }
 
-  /* ─ 4. AUDIO FEATURE HELPERS 
+  /* ── SIGNAL 3: Genre proximity (Jaccard) ──
+     Each artist has top tags on Last.fm (genre labels assigned by
+     listeners). We take the top 5 tags for each artist and compute
+     Jaccard similarity: intersection / union.
 
-     WHAT ARE AUDIO FEATURES?
-     Spotify analyses every track and returns a set of numbers
-     describing how it sounds. We use five:
+     Jaccard = |A ∩ B| / |A ∪ B|
 
-       energy          0\'961  How intense/loud (high = punk, low = ambient)
-       danceability    0\'961  How rhythmically regular (high = techno, low = jazz)
-       acousticness    0\'961  How acoustic vs electronic
-       valence         0\'961  Emotional positivity (high = happy, low = melancholic)
-       instrumentalness 0\'961 Absence of vocals
-
-     WHY DISTRIBUTION NOT JUST AN AVERAGE?
-     A band's average energy across 50 songs can be identical
-     to another band's average — but if one band swings wildly
-     between 0.1 and 0.9 and the other sits steadily at 0.5,
-     they feel completely different. Capturing the standard
-     deviation (spread) catches this.
-
-     We represent each artist as { mean, std } per feature.
-  ─ */
-  const AUDIO_KEYS = ['energy', 'danceability', 'acousticness', 'valence', 'instrumentalness'];
-
-  function computeDistribution(features) {
-    /* features: array of audio feature objects from Spotify */
-    const dist = {};
-    for (const k of AUDIO_KEYS) {
-      const vals = features.map(f => f[k] || 0);
-      const mean = vals.reduce((s, v) => s + v, 0) / vals.length;
-      const variance = vals.reduce((s, v) => s + (v - mean) ** 2, 0) / vals.length;
-      dist[k] = { mean, std: Math.sqrt(variance) };
-    }
-    return dist;
-  }
-
-  /* ─ BHATTACHARYYA DISTANCE 
-     Measures how much two Gaussian distributions overlap.
-     Lower distance = more similar.
-
-     Formula for each feature:
-       BC = 0.25 * ln(0.25 * (\'b2/\'b2 + \'b2/\'b2 + 2))
-          + 0.25 * ( - )\'b2 / (\'b2 + \'b2)
-
-     We average across all five features, then convert to
-     a 0\'961 similarity score: sim = exp(-distance).
-     exp(-0) = 1.0 (identical), exp(-large) → 0 (very different).
-  ─ */
-  function bhattacharyyaSim(distA, distB) {
-    let totalDist = 0;
-    for (const k of AUDIO_KEYS) {
-      const { mean: m1, std: s1 } = distA[k];
-      const { mean: m2, std: s2 } = distB[k];
-      const v1 = s1 * s1 + 1e-8; // add tiny epsilon to avoid div-by-zero
-      const v2 = s2 * s2 + 1e-8;
-      const termVariance = 0.25 * Math.log(0.25 * (v1/v2 + v2/v1 + 2));
-      const termMean     = 0.25 * (m1 - m2) ** 2 / (v1 + v2);
-      totalDist += termVariance + termMean;
-    }
-    const avgDist = totalDist / AUDIO_KEYS.length;
-    return Math.exp(-avgDist); // convert distance → similarity
-  }
-
-  /* ─ 5. CO-LISTENING (RELATED ARTIST GRAPH) 
-     Spotify's /related-artists endpoint returns artists
-     whose listeners significantly overlap with the seed.
-     This is derived from actual listening behaviour —
-     people who play X also often play Y.
-
-     We use it two ways:
-       1. As a candidate pool (who to score)
-       2. As a signal (artists higher in the list have
-          stronger listener overlap = higher co-listen score)
-
-     We assign a score based on rank position:
-       rank 1  → 1.0 (strongest overlap)
-       rank 20 → 0.0 (weakest in the list)
-  ─ */
-  function coListenScore(rank, total) {
-    return 1 - (rank / total);
-  }
-
-  /* ─ 6. GENRE PROXIMITY 
-     Each artist has a list of genre tags (strings).
-     We compute Jaccard similarity: the overlap divided
-     by the union of the two tag sets.
-
-       Jaccard = |A  B| / |A  B|
-
-     This is 1.0 if tags are identical, 0 if no overlap.
-     It's intentionally weighted lower (25% default)
-     because genre labels are coarse — "indie rock" covers
-     everything from The Strokes to Mitski.
-  ─ */
-  function genreJaccard(genresA, genresB) {
-    const setA = new Set(genresA);
-    const setB = new Set(genresB);
-    const intersection = [...setA].filter(g => setB.has(g)).length;
+     1.0 = identical tags, 0 = no overlap.
+     Weighted at 25% by default — tags are useful but coarse.
+  */
+  function jaccard(tagsA, tagsB) {
+    const setA = new Set(tagsA.map(t => t.toLowerCase()));
+    const setB = new Set(tagsB.map(t => t.toLowerCase()));
+    const intersection = [...setA].filter(t => setB.has(t)).length;
     const union = new Set([...setA, ...setB]).size;
-    if (union === 0) return 0;
-    return intersection / union;
+    return union === 0 ? 0 : intersection / union;
   }
 
-  /* ─ 7. POPULARITY PENALTY 
-     We want to surface less-known artists, so we apply
-     a smooth penalty to artists above the ceiling.
-
-     We use a sigmoid function so the penalty isn't a
-     cliff — it builds gradually:
-
-       penalty = 1 / (1 + exp(k * (pop - ceiling)))
-
-     k controls how steep the curve is. At k=0.15:
-       popularity = ceiling     → penalty  0.50 (half penalised)
-       popularity = ceiling+20  → penalty  0.05 (heavily penalised)
-       popularity = ceiling-20  → penalty  0.95 (almost no penalty)
-  ─ */
-  function popularityPenalty(popularity, ceiling) {
-    const k = 0.15;
-    return 1 / (1 + Math.exp(k * (popularity - ceiling)));
+  /* ── Popularity penalty (sigmoid) ──
+     Rather than a hard cutoff, we apply a smooth sigmoid curve.
+     Artists well below the ceiling score near 1.0.
+     Artists well above it score near 0.0.
+     The transition is gradual, not a cliff.
+  */
+  function popPenalty(candidateListeners, seedListeners, ceiling) {
+    const ratio    = candidateListeners / (seedListeners || 1);
+    const ceilRatio = ceiling / 100;
+    const k = 8; // steepness of the curve
+    return 1 / (1 + Math.exp(k * (ratio - ceilRatio)));
   }
 
-  /* ─ 8. DIVERSITY PASS 
-     After scoring, we may have 8 results all from the
-     same micro-genre. The diversity pass limits how many
-     results share the same primary genre tag.
-
-     Algorithm:
-       - Sort results by score (already done)
-       - Walk the list top-to-bottom
-       - Track how many times each primary genre appears
-       - Skip any result that would push a genre over the cap
-  ─ */
+  /* ── Diversity pass ──
+     Prevents results being dominated by one micro-genre.
+     Walks the ranked list and caps how many times each
+     primary tag can appear.
+  */
   function applyDiversity(scored, maxPerGenre) {
     const genreCount = {};
     const kept = [];
     for (const item of scored) {
-      const primaryGenre = item.artist.genres[0] || '_none';
-      genreCount[primaryGenre] = (genreCount[primaryGenre] || 0);
-      if (genreCount[primaryGenre] < maxPerGenre) {
+      const primary = (item.tags[0] || '_none').toLowerCase();
+      genreCount[primary] = genreCount[primary] || 0;
+      if (genreCount[primary] < maxPerGenre) {
         kept.push(item);
-        genreCount[primaryGenre]++;
+        genreCount[primary]++;
       }
       if (kept.length >= 8) break;
     }
     return kept;
   }
 
-  /* ─ 9. EXPLAINABILITY TRACE 
-     Every result card shows a human-readable "why" sentence.
-     This is not decoration — it's what makes the algorithm
-     legible to users and interviewers alike.
-  ─ */
-  function buildWhySentence(item, seedName, ceiling) {
+  /* ── Explainability trace ──
+     Every card shows a human-readable reason sentence.
+     This makes the algorithm legible — users and interviewers
+     can see exactly why each artist was surfaced.
+  */
+  function whySentence(item, seedName) {
     const parts = [];
+    if (item.simScore > 0.7)       parts.push('very high similarity to ' + seedName);
+    else if (item.simScore > 0.4)  parts.push('strong match with ' + seedName);
+    else if (item.simScore > 0.2)  parts.push('moderate match with ' + seedName);
 
-    if (item.audioSim > 0.88)      parts.push('very similar audio texture to ' + seedName);
-    else if (item.audioSim > 0.72) parts.push('comparable sound to ' + seedName);
+    if (item.listenScore > 0.7)    parts.push('similarly sized audience');
+    else if (item.listenScore < 0.25) parts.push('much smaller — genuinely underground');
 
-    if (item.listenSim > 0.75)     parts.push('strong audience overlap');
-    else if (item.listenSim > 0.4) parts.push('partial audience crossover');
+    if (item.genreScore > 0.5)     parts.push('near-identical genre tags');
+    else if (item.genreScore > 0.2) parts.push('overlapping genre tags');
 
-    if (item.genreSim > 0.5)       parts.push('close genre match');
-    else if (item.genreSim > 0.2)  parts.push('adjacent genre');
-
-    const popGap = ceiling - item.artist.popularity;
-    if (popGap > 25) parts.push('well under the radar');
-    else if (popGap > 10) parts.push('less mainstream than ' + seedName);
-
-    if (parts.length === 0) parts.push('surfaced via listener behaviour graph');
+    if (!parts.length) parts.push('surfaced via Last.fm listener graph');
     return parts.join(' · ');
   }
 
-  /* ─ 10. MAIN SEARCH FUNCTION 
-     This orchestrates everything above.
-  ─ */
+  /* ── Main discovery function ── */
   async function discover() {
     const query = input.value.trim();
     if (!query) return;
@@ -941,167 +657,129 @@ footer a { color: var(--text-3); text-decoration: underline; text-underline-offs
 
     try {
 
-      /* STEP A: resolve artist name → Spotify ID */
-      const searchRes = await api('/search?q=' + encodeURIComponent(query) + '&type=artist&limit=1');
-      const hits = searchRes.artists.items;
-      if (!hits.length) { showEmpty('No artist found for "' + query + '". Try a different spelling.'); return; }
-      const seed = hits[0];
-
-      showLoading('Found ' + seed.name + ' — fetching candidates…');
-
-      /* STEP B: use /recommendations to get a candidate pool.
-         This is one of the few endpoints still open to new Spotify apps.
-         We seed it with the artist ID + up to 2 of their genre tags.
-         It returns 20 recommended TRACKS — we then resolve those back
-         to unique artists to build our candidate pool.
-
-         We deliberately avoid /top-tracks, /related-artists, and
-         /audio-features — all restricted for apps created after 2024.
+      /* STEP A: get seed artist info from Last.fm
+         artist.getInfo returns listener count, playcount, and top tags.
+         We need this to normalise listener scores for candidates.
       */
-      const seedGenres = seed.genres.slice(0, 2);
-      let recoParams   = 'limit=20&seed_artists=' + seed.id;
-      if (seedGenres.length) {
-        recoParams += '&seed_genres=' + seedGenres.map(encodeURIComponent).join(',');
-      }
+      const seedData = await lfm('method=artist.getInfo&artist=' + encodeURIComponent(query));
+      const seed     = seedData.artist;
+      const seedName = seed.name;
+      const seedListeners = parseInt(seed.stats.listeners) || 1;
+      const seedTags = (seed.tags.tag || []).slice(0, 5).map(t => t.name);
 
-      const recoRes    = await api('/recommendations?' + recoParams);
-      console.log('Recommendations response:', JSON.stringify(recoRes, null, 2));
+      showLoading('Found ' + seedName + ' — fetching similar artists…');
 
-      // Spotify sometimes returns {error: ...} or an unexpected shape
-      if (recoRes.error) {
-        throw new Error('Spotify recommendations error: ' + recoRes.error.message + ' (status ' + recoRes.error.status + ')');
-      }
+      /* STEP B: get similar artists
+         artist.getSimilar returns up to 50 similar artists,
+         each with a match score 0–1. This is our candidate pool.
+         We take the top 20 to keep scoring fast.
+      */
+      const simData    = await lfm('method=artist.getSimilar&artist=' + encodeURIComponent(seedName) + '&limit=20');
+      const similarRaw = simData.similarartists.artist || [];
 
-      const recoTracks = Array.isArray(recoRes.tracks) ? recoRes.tracks : [];
-
-      if (!recoTracks.length) {
-        showEmpty('No recommendations found for ' + seed.name + '. Try another artist.');
+      if (!similarRaw.length) {
+        showEmpty('No similar artists found for "' + seedName + '". Try a more well-known artist.');
         return;
       }
 
-      /* Deduplicate by artist, exclude seed itself, keep track ID for later */
-      const artistMap = new Map();
-      for (const track of recoTracks) {
-        const a = track.artists[0];
-        if (a && a.id !== seed.id && !artistMap.has(a.id)) {
-          artistMap.set(a.id, track.id);
-        }
-      }
+      showLoading('Scoring ' + similarRaw.length + ' candidates…');
 
-      /* Fetch full artist objects in one batch call (/artists?ids=...) —
-         this gives us genres, popularity, follower count, and images.
-         This endpoint IS available to new apps.
+      /* STEP C: fetch full info for each candidate (tags + listener count)
+         We need artist.getInfo for each candidate to get their tags
+         and listener count. We fire all requests in parallel with
+         Promise.all so this takes one round-trip time, not 20.
       */
-      const artistIds  = [...artistMap.keys()].slice(0, 20);
-      const batchRes   = await api('/artists?ids=' + artistIds.join(','));
-      const candidates = (batchRes.artists || []).filter(Boolean);
+      const candidateData = await Promise.all(
+        similarRaw.map(async (a) => {
+          try {
+            const info = await lfm('method=artist.getInfo&artist=' + encodeURIComponent(a.name));
+            return {
+              name:      info.artist.name,
+              match:     parseFloat(a.match) || 0,
+              listeners: parseInt(info.artist.stats.listeners) || 0,
+              playcount: parseInt(info.artist.stats.playcount) || 0,
+              tags:      (info.artist.tags.tag || []).slice(0, 5).map(t => t.name),
+              url:       info.artist.url,
+              image:     (info.artist.image || []).find(i => i.size === 'medium')?.['#text'] || '',
+            };
+          } catch (e) {
+            return null; // skip artists that error
+          }
+        })
+      );
 
-      showLoading('Scoring ' + candidates.length + ' candidates…');
+      const candidates = candidateData.filter(Boolean);
 
-      /* STEP C: read current slider weights and normalise to sum to 1.0 */
+      /* STEP D: read slider weights and normalise to sum to 1.0 */
       const wRaw = {
-        audio:  parseInt(sliders.audio.value),
-        listen: parseInt(sliders.listen.value),
-        genre:  parseInt(sliders.genre.value),
+        sim:    parseInt(document.getElementById('w-sim').value),
+        listen: parseInt(document.getElementById('w-listen').value),
+        genre:  parseInt(document.getElementById('w-genre').value),
       };
-      const wSum = wRaw.audio + wRaw.listen + wRaw.genre || 1;
+      const wSum = wRaw.sim + wRaw.listen + wRaw.genre || 1;
       const w = {
-        audio:  wRaw.audio  / wSum,
+        sim:    wRaw.sim    / wSum,
         listen: wRaw.listen / wSum,
         genre:  wRaw.genre  / wSum,
       };
 
-      const ceiling = parseInt(popSlider.value);
+      const ceiling = parseInt(document.getElementById('pop-ceiling').value);
 
-      /* STEP D: score every candidate using three signals.
+      /* STEP E: score each candidate */
+      const scored = candidates.map(c => {
+        const simScore    = c.match; // already 0–1 from Last.fm
+        const listenScore = listenerScore(c.listeners, seedListeners, ceiling);
+        const genreScore  = jaccard(seedTags, c.tags);
+        const penalty     = popPenalty(c.listeners, seedListeners, ceiling);
 
-         SIGNAL 1 — Audio texture:
-         Because /audio-features is blocked for new apps, we approximate
-         audio similarity using the seed's genre tags as a proxy for sound.
-         Spotify's genre tags are derived from audio analysis, so genre
-         Jaccard gives us a reasonable audio-proxy signal. We keep this
-         as a separate score from the pure genre signal (Step D Signal 3)
-         because in Phase 2 we'll replace it with real Bhattacharyya distance
-         once audio features become available (e.g. via an older app or
-         a backend proxy). For now audioSim = genreSim as a stand-in.
-
-         SIGNAL 2 — Listener behaviour (co-listening proxy):
-         Spotify's recommendations endpoint ranks results by relevance to
-         the seed — effectively encoding listener co-occurrence. Rank 1
-         means strongest listener overlap. We convert rank → 0–1 score.
-
-         SIGNAL 3 — Genre proximity (Jaccard):
-         Direct tag overlap between seed and candidate genre lists.
-         Weighted lower by default (25%) because tags are coarse.
-      */
-      const scored = candidates.map((artist, rank) => {
-
-        /* Signal 1: audio proxy via genre overlap (replace with
-           Bhattacharyya in Phase 2 when audio features are available) */
-        const audioSim  = genreJaccard(seed.genres, artist.genres);
-
-        /* Signal 2: co-listening via recommendation rank position */
-        const listenSim = coListenScore(rank, candidates.length);
-
-        /* Signal 3: genre proximity */
-        const genreSim  = genreJaccard(seed.genres, artist.genres);
-
-        /* Weighted combination */
-        const rawScore   = w.audio * audioSim + w.listen * listenSim + w.genre * genreSim;
-
-        /* Smooth popularity penalty */
-        const penalty    = popularityPenalty(artist.popularity, ceiling);
+        const rawScore   = w.sim * simScore + w.listen * listenScore + w.genre * genreScore;
         const finalScore = rawScore * penalty;
 
-        return { artist, audioSim, listenSim, genreSim, rawScore, finalScore };
+        return { ...c, simScore, listenScore, genreScore, rawScore, finalScore, tags: c.tags };
       });
 
-      /* STEP F: sort by final score */
+      /* STEP F: sort by final score descending */
       scored.sort((a, b) => b.finalScore - a.finalScore);
 
-      /* STEP G: optionally apply diversity pass */
+      /* STEP G: diversity pass */
       const useDiversity = document.getElementById('diversity-toggle').checked;
       const final = useDiversity ? applyDiversity(scored, 2) : scored.slice(0, 8);
 
-      /* STEP H: render */
+      /* STEP H: render results */
       stateBox.style.display = 'none';
-      seedBar.style.display = 'flex';
-      seedNameEl.textContent = seed.name;
+      seedBar.style.display  = 'flex';
+      seedNameEl.textContent  = seedName;
       seedCountEl.textContent = final.length + ' discoveries';
-      resultsEl.innerHTML = '';
-      final.forEach((item, i) => resultsEl.appendChild(buildCard(item, seed, ceiling)));
+      resultsEl.innerHTML     = '';
+      final.forEach(item => resultsEl.appendChild(buildCard(item, seedName, seedListeners)));
 
     } catch (err) {
-      showError(err.message || 'Something went wrong. Check your credentials and try again.');
+      showError(err.message || 'Something went wrong. Try another artist name.');
     } finally {
       btn.disabled = false;
     }
   }
 
-  /* ─ 11. CARD RENDERER  */
-  function buildCard(item, seed, ceiling) {
-    const { artist, audioSim, listenSim, genreSim, finalScore } = item;
+  /* ── Card renderer ── */
+  function buildCard(item, seedName, seedListeners) {
+    const isUnderRadar = item.listeners < seedListeners * 0.3;
+    const isRising     = item.playcount > 0 && item.listeners < 500000 && item.playcount / item.listeners > 50;
+    const genres       = item.tags.slice(0, 3).join(', ') || 'no tags';
+    const why          = whySentence(item, seedName);
 
-    const img    = artist.images?.[artist.images.length - 1]?.url;
-    const genres = artist.genres.slice(0, 3).join(', ') || 'no genre tags';
-    const isUnderRadar = ceiling - artist.popularity > 20;
-    const isRising     = artist.popularity > 0 && artist.popularity < 40 && artist.followers?.total > 50000;
-
-    const spotifyUrl   = 'https://open.spotify.com/artist/' + artist.id;
-    const appleUrl     = 'https://music.apple.com/search?term=' + encodeURIComponent(artist.name);
-    const bandcampUrl  = 'https://bandcamp.com/search?q=' + encodeURIComponent(artist.name);
-
-    const why = buildWhySentence(item, seed.name, ceiling);
+    const spotifyUrl  = 'https://open.spotify.com/search/' + encodeURIComponent(item.name);
+    const appleUrl    = 'https://music.apple.com/search?term=' + encodeURIComponent(item.name);
+    const bandcampUrl = 'https://bandcamp.com/search?q=' + encodeURIComponent(item.name);
 
     const card = document.createElement('div');
     card.className = 'card';
     card.innerHTML =
-      (img
-        ? `<img class="card-img" src="${esc(img)}" alt="${esc(artist.name)}" loading="lazy">`
-        : `<div class="card-img-placeholder">♪</div>`)
+      (item.image && item.image !== ''
+        ? `<img class="card-img" src="${esc(item.image)}" alt="${esc(item.name)}" loading="lazy">`
+        : `<div class="card-img-placeholder">&#9834;</div>`)
       + `<div>
           <div class="card-top">
-            <span class="card-name">${esc(artist.name)}</span>
+            <span class="card-name">${esc(item.name)}</span>
             <span>
               ${isUnderRadar ? '<span class="badge badge-discovery">Under the radar</span>' : ''}
               ${isRising     ? '<span class="badge badge-rising">Rising</span>' : ''}
@@ -1109,59 +787,49 @@ footer a { color: var(--text-3); text-decoration: underline; text-underline-offs
           </div>
           <div class="card-genres">${esc(genres)}</div>
           <div class="score-bars">
-            ${sbar('Audio',    audioSim)}
-            ${sbar('Listeners', listenSim)}
-            ${sbar('Genre',    genreSim)}
+            ${sbar('Similarity',  item.simScore)}
+            ${sbar('Listeners',   item.listenScore)}
+            ${sbar('Genre',       item.genreScore)}
           </div>
           <div class="why">${esc(why)}</div>
           <div class="card-links">
-            <a class="lbtn spotify"  href="${spotifyUrl}"  target="_blank" rel="noopener">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
-              Spotify
-            </a>
-            <a class="lbtn apple"    href="${appleUrl}"    target="_blank" rel="noopener">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23.994 6.124a9.23 9.23 0 0 0-.24-2.19c-.317-1.31-1.062-2.31-2.18-3.043a5.022 5.022 0 0 0-1.62-.66c-.55-.122-1.1-.166-1.65-.166H5.696A5.096 5.096 0 0 0 4.1.28 4.757 4.757 0 0 0 .967 2.065C.336 2.99.05 4.04.007 5.15A22.19 22.19 0 0 0 0 5.936v12.128c0 .54.044 1.08.12 1.616.16 1.26.65 2.36 1.55 3.26.76.76 1.69 1.24 2.75 1.45.48.1.96.14 1.44.14H18.14c.48 0 .96-.04 1.44-.14 1.06-.21 1.99-.69 2.75-1.45.9-.9 1.39-2 1.55-3.26.076-.536.12-1.076.12-1.616V5.936c-.006-.605-.03-1.213-.006-1.812zM12 18.62c-3.65 0-6.62-2.97-6.62-6.62s2.97-6.62 6.62-6.62 6.62 2.97 6.62 6.62-2.97 6.62-6.62 6.62zm6.88-11.94a1.56 1.56 0 1 1 0-3.12 1.56 1.56 0 0 1 0 3.12zM12 7.38a4.62 4.62 0 1 0 0 9.24 4.62 4.62 0 0 0 0-9.24z"/></svg>
-              Apple Music
-            </a>
-            <a class="lbtn bandcamp" href="${bandcampUrl}" target="_blank" rel="noopener">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M0 18.75l7.437-13.5H24l-7.438 13.5z"/></svg>
-              Bandcamp
-            </a>
+            <a class="lbtn lastfm"   href="${esc(item.url)}" target="_blank" rel="noopener">Last.fm</a>
+            <a class="lbtn spotify"  href="${esc(spotifyUrl)}"  target="_blank" rel="noopener">Spotify</a>
+            <a class="lbtn apple"    href="${esc(appleUrl)}"    target="_blank" rel="noopener">Apple Music</a>
+            <a class="lbtn bandcamp" href="${esc(bandcampUrl)}" target="_blank" rel="noopener">Bandcamp</a>
           </div>
         </div>`;
     return card;
   }
 
   function sbar(label, val) {
-    const pct = Math.round(val * 100);
-    const dimClass = pct < 30 ? ' muted' : '';
+    const pct = Math.round((val || 0) * 100);
     return `<div class="sbar">
       <span class="sbar-label">${label}</span>
-      <div class="sbar-track"><div class="sbar-fill${dimClass}" style="width:${pct}%"></div></div>
+      <div class="sbar-track"><div class="sbar-fill${pct < 30 ? ' muted' : ''}" style="width:${pct}%"></div></div>
       <span class="sbar-pct">${pct}%</span>
     </div>`;
   }
 
-  /* ─ 12. STATE HELPERS  */
   function showLoading(msg) {
     stateBox.style.display = 'block';
-    stateInner.innerHTML = `<div class="spinner"></div><p>${esc(msg)}</p>`;
-    resultsEl.innerHTML = '';
-    seedBar.style.display = 'none';
+    stateInner.innerHTML   = `<div class="spinner"></div><p>${esc(msg)}</p>`;
+    resultsEl.innerHTML    = '';
+    seedBar.style.display  = 'none';
   }
 
   function showEmpty(msg) {
     stateBox.style.display = 'block';
-    stateInner.innerHTML = `<p style="font-size:2rem;margin-bottom:.5rem">—</p><p>${esc(msg)}</p>`;
-    resultsEl.innerHTML = '';
-    seedBar.style.display = 'none';
+    stateInner.innerHTML   = `<p style="font-size:2rem;margin-bottom:.5rem">&#8212;</p><p>${esc(msg)}</p>`;
+    resultsEl.innerHTML    = '';
+    seedBar.style.display  = 'none';
   }
 
   function showError(msg) {
     stateBox.style.display = 'block';
-    stateInner.innerHTML = `<p style="font-size:2rem;color:var(--red);margin-bottom:.5rem">!</p><p style="color:var(--red)">${esc(msg)}</p>`;
-    resultsEl.innerHTML = '';
-    seedBar.style.display = 'none';
+    stateInner.innerHTML   = `<p style="font-size:2rem;color:var(--red);margin-bottom:.5rem">!</p><p style="color:var(--red)">${esc(msg)}</p>`;
+    resultsEl.innerHTML    = '';
+    seedBar.style.display  = 'none';
   }
 
   function esc(s) {
@@ -1170,7 +838,6 @@ footer a { color: var(--text-3); text-decoration: underline; text-underline-offs
       .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  /* ─ 13. EVENT LISTENERS  */
   input.addEventListener('keydown', e => { if (e.key === 'Enter') discover(); });
   btn.addEventListener('click', discover);
 
