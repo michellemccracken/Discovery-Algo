@@ -544,6 +544,474 @@ footer a { color: var(--text-3); text-decoration: underline; text-underline-offs
     document.getElementById('pop-val').textContent = e.target.value;
   });
 
+  /* ── Last.fm API helper ── */
+  async function lfm(params) {
+    const url = 'https://ws.audioscrobbler.com/2.0/?api_key=' + LASTFM_KEY + '&format=json&' + params;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Last.fm error: ' + res.status);
+    const data = await res.json();
+    if (data.error) throw new Error('Last.fm: ' + data.message);
+    return data;
+  }
+
+  /* ── MusicBrainz API helper ──
+     Completely free, no key needed.
+     We use it to find artists by genre tag — totally separate
+     from Last.fm's popularity graph, so surfaces different acts.
+  */
+  async function mb(path) {
+    const res = await fetch('https://musicbrainz.org/ws/2/' + path + '&fmt=json', {
+      headers: { 'User-Agent': 'MusicDiscoveryApp/1.0 (portfolio project)' }
+    });
+    if (!res.ok) return null;
+    return res.json();
+  }
+
+  /* ── SCORING FUNCTIONS ── */
+
+  /* Signal 1: Last.fm similarity match score (0–1, already normalised) */
+
+  /* Signal 2: Underground reward curve
+     Inverted-U centred on 10k–150k listeners.
+     Artists in this range score 1.0 — known enough to have
+     real data, unknown enough to be a genuine discovery.
+  */
+  function undergroundScore(listeners) {
+    if (listeners < 500)    return 0.05;
+    if (listeners < 5000)   return 0.4;
+    if (listeners < 10000)  return 0.7;
+    if (listeners < 150000) return 1.0;
+    if (listeners < 400000) return 0.4;
+    return 0.1;
+  }
+
+  /* Signal 3: Genre proximity — Jaccard tag overlap */
+  function jaccard(tagsA, tagsB) {
+    const setA = new Set(tagsA.map(t => t.toLowerCase()));
+    const setB = new Set(tagsB.map(t => t.toLowerCase()));
+    const intersection = [...setA].filter(t => setB.has(t)).length;
+    const union = new Set([...setA, ...setB]).size;
+    return union === 0 ? 0 : intersection / union;
+  }
+
+  /* Signal 4: Momentum — plays-per-listener density
+     High ratio = loyal returning audience = organic growth signal.
+  */
+  function calcMomentum(listeners, playcount) {
+    if (!listeners || !playcount) return 0;
+    const ppl = playcount / listeners;
+    if (ppl < 2)   return 0.1;
+    if (ppl > 200) return 0.2;
+    return Math.min(1, ppl / 80);
+  }
+
+  /* Hard ceiling: slider 10→100 maps to 50k→1.5M listeners */
+  function listenerCeiling(sliderVal) {
+    return Math.round(50000 + (sliderVal - 10) / 90 * 1450000);
+  }
+
+  /* Diversity pass: max N results per primary genre tag */
+  function applyDiversity(scored, maxPerGenre) {
+    const count = {};
+    const kept  = [];
+    for (const item of scored) {
+      const primary = (item.tags[0] || '_none').toLowerCase();
+      count[primary] = count[primary] || 0;
+      if (count[primary] < maxPerGenre) { kept.push(item); count[primary]++; }
+      if (kept.length >= 8) break;
+    }
+    return kept;
+  }
+
+  /* Explainability trace */
+  function whySentence(item, seedName) {
+    const parts = [];
+    if      (item.simScore > 0.6) parts.push('strong sonic match with ' + seedName);
+    else if (item.simScore > 0.3) parts.push('moderate match with ' + seedName);
+
+    const src = { inverted: 'fans of ' + seedName + ' also follow this act', mb: 'matched via genre DNA (MusicBrainz)', tag: 'shares scene tags with ' + seedName, first: 'directly similar to ' + seedName };
+    if (src[item.source]) parts.push(src[item.source]);
+
+    if      (item.listenScore >= 1.0) parts.push('in the discovery sweet spot');
+    else if (item.listenScore < 0.3)  parts.push('extremely underground');
+
+    if      (item.momentumScore > 0.7) parts.push('high listener engagement');
+    else if (item.momentumScore > 0.4) parts.push('growing fanbase');
+
+    if (!parts.length) parts.push('surfaced via multi-source discovery pipeline');
+    return parts.join(' · ');
+  }
+
+  /* ── Fetch full Last.fm profile for a candidate name ── */
+  async function enrichFromLastfm(name, matchScore, source) {
+    try {
+      const d = await lfm('method=artist.getInfo&artist=' + encodeURIComponent(name));
+      const a = d.artist;
+      return {
+        name:      a.name,
+        match:     matchScore,
+        source,
+        listeners: parseInt(a.stats.listeners)  || 0,
+        playcount: parseInt(a.stats.playcount)   || 0,
+        tags:      (a.tags.tag || []).slice(0, 5).map(t => t.name),
+        url:       a.url,
+        image:     (a.image || []).find(i => i.size === 'medium')?.['#text'] || '',
+      };
+    } catch (e) { return null; }
+  }
+
+  /* ══════════════════════════════════════════════
+     THREE CANDIDATE SOURCES
+  ══════════════════════════════════════════════ */
+
+  /* SOURCE A: Inverted Last.fm graph ──
+     The key insight: instead of asking "who is similar to X,"
+     we ask "who has X-adjacent artists in THEIR similar list
+     but isn't themselves famous."
+
+     Method:
+     1. Get seed's similar artists (first degree)
+     2. For each first-degree artist, get THEIR similar artists
+     3. Collect every artist that appears in multiple second-degree
+        lists — these are artists operating in the same scene
+        who haven't been formally linked to the seed yet
+     4. Count how many times each name appears across all lists
+        (consensus score) and use that as the match signal
+
+     This surfaces artists that the scene considers peers
+     but that aren't on the seed's own similar list.
+  */
+  async function getInvertedGraphCandidates(seedName) {
+    const simData     = await lfm('method=artist.getSimilar&artist=' + encodeURIComponent(seedName) + '&limit=15');
+    const firstDegree = simData.similarartists.artist || [];
+
+    // Get similar artists for each first-degree act in parallel
+    const secondDegreeLists = await Promise.all(
+      firstDegree.map(a =>
+        lfm('method=artist.getSimilar&artist=' + encodeURIComponent(a.name) + '&limit=15')
+          .then(d => d.similarartists.artist || [])
+          .catch(() => [])
+      )
+    );
+
+    // Count appearances across all second-degree lists
+    const appearances = new Map();
+    for (const list of secondDegreeLists) {
+      for (const a of list) {
+        const key = a.name.toLowerCase();
+        appearances.set(key, { name: a.name, count: (appearances.get(key)?.count || 0) + 1 });
+      }
+    }
+
+    // Remove seed and first-degree artists (already known)
+    const firstDegreeNames = new Set(firstDegree.map(a => a.name.toLowerCase()));
+    firstDegreeNames.add(seedName.toLowerCase());
+
+    // Return candidates that appear in 2+ lists — genuine scene consensus
+    return [...appearances.values()]
+      .filter(a => !firstDegreeNames.has(a.name.toLowerCase()) && a.count >= 2)
+      .map(a => ({ name: a.name, match: Math.min(0.8, a.count * 0.2), source: 'inverted' }));
+  }
+
+  /* SOURCE B: MusicBrainz genre graph ──
+     MusicBrainz is a community-maintained music database with
+     a genre tagging system completely independent of listening
+     behaviour. Artists are tagged by musicologists and fans
+     based on musical characteristics, not popularity.
+
+     We search MusicBrainz for artists with the seed's primary
+     genre tags, then filter to those with a Last.fm presence.
+     This surfaces acts with the right musical DNA that don't
+     appear in any popularity-biased graph.
+  */
+  async function getMusicBrainzCandidates(seedTags) {
+    const candidates = [];
+    // Use top 2 tags, query MusicBrainz artist search by tag
+    for (const tag of seedTags.slice(0, 2)) {
+      try {
+        const encoded = encodeURIComponent(tag);
+        const data    = await mb('artist?query=tag:' + encoded + '&limit=25&offset=' + Math.floor(Math.random() * 50));
+        if (data?.artists) {
+          for (const a of data.artists) {
+            if (a.name) candidates.push({ name: a.name, match: 0.45, source: 'mb' });
+          }
+        }
+      } catch (e) { /* skip */ }
+      // MusicBrainz rate limit: 1 req/sec
+      await new Promise(r => setTimeout(r, 1100));
+    }
+    return candidates;
+  }
+
+  /* SOURCE C: Last.fm tag intersection ──
+     Find artists who sit at the intersection of the seed's
+     genre tags. Artists tagged with multiple niche tags
+     (e.g. both "shoegaze" AND "country") are genuinely
+     interesting cross-genre discoveries.
+
+     We fetch top artists per tag, then find those appearing
+     in multiple tag lists — the intersection.
+  */
+  async function getTagIntersectionCandidates(seedTags) {
+    if (seedTags.length < 2) return [];
+
+    const tagLists = await Promise.all(
+      seedTags.slice(0, 3).map(tag =>
+        lfm('method=tag.gettopartists&tag=' + encodeURIComponent(tag) + '&limit=50')
+          .then(d => (d.topartists?.artist || []).map(a => a.name.toLowerCase()))
+          .catch(() => [])
+      )
+    );
+
+    // Find artists appearing in 2+ tag lists
+    const nameCount = new Map();
+    for (const list of tagLists) {
+      for (const name of list) {
+        nameCount.set(name, (nameCount.get(name) || 0) + 1);
+      }
+    }
+
+    // Restore original casing from first list that had them
+    const nameMap = new Map();
+    for (const list of seedTags.slice(0, 3).map((_, i) => tagLists[i] || [])) { }
+
+    // Re-fetch with original casing from the tag API
+    const allTagArtists = await Promise.all(
+      seedTags.slice(0, 3).map(tag =>
+        lfm('method=tag.gettopartists&tag=' + encodeURIComponent(tag) + '&limit=50')
+          .then(d => (d.topartists?.artist || []))
+          .catch(() => [])
+      )
+    );
+
+    for (const list of allTagArtists) {
+      for (const a of list) {
+        if (!nameMap.has(a.name.toLowerCase())) nameMap.set(a.name.toLowerCase(), a.name);
+      }
+    }
+
+    return [...nameCount.entries()]
+      .filter(([, count]) => count >= 2)
+      .map(([key]) => ({ name: nameMap.get(key) || key, match: 0.5, source: 'tag' }));
+  }
+
+  /* ── MAIN DISCOVERY FUNCTION ── */
+  async function discover() {
+    const query = input.value.trim();
+    if (!query) return;
+
+    btn.disabled = true;
+    showLoading('Searching for "' + query + '"…');
+
+    try {
+
+      /* STEP 1: Seed artist info */
+      const seedData    = await lfm('method=artist.getInfo&artist=' + encodeURIComponent(query));
+      const seed        = seedData.artist;
+      const seedName    = seed.name;
+      const seedTags    = (seed.tags.tag || []).slice(0, 5).map(t => t.name);
+      const ceiling     = listenerCeiling(parseInt(document.getElementById('pop-ceiling').value));
+
+      showLoading('Found ' + seedName + ' — running three-source discovery pipeline…');
+
+      /* STEP 2: Run all three sources in parallel (except MusicBrainz
+         which needs rate limiting so runs sequentially after)
+      */
+      const [invertedCandidates, tagCandidates] = await Promise.all([
+        getInvertedGraphCandidates(seedName).catch(() => []),
+        getTagIntersectionCandidates(seedTags).catch(() => []),
+      ]);
+
+      showLoading('Querying MusicBrainz genre database…');
+      const mbCandidates = await getMusicBrainzCandidates(seedTags).catch(() => []);
+
+      /* STEP 3: Merge and deduplicate all sources */
+      const allCandidates = new Map();
+
+      for (const a of [...invertedCandidates, ...tagCandidates, ...mbCandidates]) {
+        const key = a.name.toLowerCase();
+        // If artist appears in multiple sources, keep highest match score
+        if (!allCandidates.has(key) || allCandidates.get(key).match < a.match) {
+          allCandidates.set(key, a);
+        }
+      }
+
+      allCandidates.delete(seedName.toLowerCase());
+      const rawPool = [...allCandidates.values()];
+
+      showLoading('Enriching ' + rawPool.length + ' candidates via Last.fm…');
+
+      /* STEP 4: Enrich with Last.fm data and hard-filter above ceiling */
+      // Process in batches of 10 to avoid overwhelming Last.fm
+      const BATCH = 10;
+      const enriched = [];
+      for (let i = 0; i < rawPool.length; i += BATCH) {
+        const batch = rawPool.slice(i, i + BATCH);
+        const results = await Promise.all(
+          batch.map(a => enrichFromLastfm(a.name, a.match, a.source))
+        );
+        enriched.push(...results.filter(c => c && c.listeners > 0 && c.listeners <= ceiling));
+      }
+
+      if (!enriched.length) {
+        showEmpty('No underground artists found. Try raising the popularity ceiling, or try a different artist.');
+        return;
+      }
+
+      showLoading('Scoring ' + enriched.length + ' underground candidates…');
+
+      /* STEP 5: Read slider weights */
+      const wRaw = {
+        sim:      parseInt(document.getElementById('w-sim').value),
+        listen:   parseInt(document.getElementById('w-listen').value),
+        genre:    parseInt(document.getElementById('w-genre').value),
+        momentum: parseInt(document.getElementById('w-momentum').value),
+      };
+      const wSum = wRaw.sim + wRaw.listen + wRaw.genre + wRaw.momentum || 1;
+      const w = {
+        sim:      wRaw.sim      / wSum,
+        listen:   wRaw.listen   / wSum,
+        genre:    wRaw.genre    / wSum,
+        momentum: wRaw.momentum / wSum,
+      };
+
+      /* STEP 6: Score */
+      const scored = enriched.map(c => {
+        const simScore      = c.match;
+        const listenScore   = undergroundScore(c.listeners);
+        const genreScore    = jaccard(seedTags, c.tags);
+        const momentumScore = calcMomentum(c.listeners, c.playcount);
+
+        // Source bonus: inverted graph and MB candidates are harder to surface
+        const sourceBonus = c.source === 'inverted' ? 1.08 : c.source === 'mb' ? 1.06 : c.source === 'tag' ? 1.03 : 1.0;
+
+        const finalScore = (w.sim * simScore + w.listen * listenScore + w.genre * genreScore + w.momentum * momentumScore) * sourceBonus;
+
+        return { ...c, simScore, listenScore, genreScore, momentumScore, finalScore };
+      });
+
+      scored.sort((a, b) => b.finalScore - a.finalScore);
+
+      const useDiversity = document.getElementById('diversity-toggle').checked;
+      const final = useDiversity ? applyDiversity(scored, 2) : scored.slice(0, 8);
+
+      /* STEP 7: Render */
+      stateBox.style.display = 'none';
+      seedBar.style.display  = 'flex';
+      seedNameEl.textContent  = seedName;
+      seedCountEl.textContent = final.length + ' discoveries from ' + enriched.length + ' candidates';
+      resultsEl.innerHTML     = '';
+      final.forEach(item => resultsEl.appendChild(buildCard(item, seedName)));
+
+    } catch (err) {
+      showError(err.message || 'Something went wrong. Try another artist name.');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  /* ── Card renderer ── */
+  function buildCard(item, seedName) {
+    const isUnderRadar = item.listeners < 50000;
+    const isRising     = item.momentumScore > 0.6 && item.listeners < 200000;
+    const genres       = item.tags.slice(0, 3).join(', ') || 'no tags';
+    const why          = whySentence(item, seedName);
+
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML =
+      (item.image && item.image !== ''
+        ? `<img class="card-img" src="${esc(item.image)}" alt="${esc(item.name)}" loading="lazy">`
+        : `<div class="card-img-placeholder">&#9834;</div>`)
+      + `<div>
+          <div class="card-top">
+            <span class="card-name">${esc(item.name)}</span>
+            <span>
+              ${isUnderRadar ? '<span class="badge badge-discovery">Under the radar</span>' : ''}
+              ${isRising     ? '<span class="badge badge-rising">Rising</span>'     : ''}
+            </span>
+          </div>
+          <div class="card-genres">${esc(genres)}</div>
+          <div class="score-bars">
+            ${sbar('Similarity',  item.simScore)}
+            ${sbar('Underground', item.listenScore)}
+            ${sbar('Genre',       item.genreScore)}
+            ${sbar('Momentum',    item.momentumScore)}
+          </div>
+          <div class="why">${esc(why)}</div>
+          <div class="card-links">
+            <a class="lbtn lastfm"   href="${esc(item.url)}" target="_blank" rel="noopener">Last.fm</a>
+            <a class="lbtn spotify"  href="https://open.spotify.com/search/${encodeURIComponent(item.name)}"  target="_blank" rel="noopener">Spotify</a>
+            <a class="lbtn apple"    href="https://music.apple.com/search?term=${encodeURIComponent(item.name)}"    target="_blank" rel="noopener">Apple Music</a>
+            <a class="lbtn bandcamp" href="https://bandcamp.com/search?q=${encodeURIComponent(item.name)}" target="_blank" rel="noopener">Bandcamp</a>
+          </div>
+        </div>`;
+    return card;
+  }
+
+  function sbar(label, val) {
+    const pct = Math.round((val || 0) * 100);
+    return `<div class="sbar">
+      <span class="sbar-label">${label}</span>
+      <div class="sbar-track"><div class="sbar-fill${pct < 30 ? ' muted' : ''}" style="width:${pct}%"></div></div>
+      <span class="sbar-pct">${pct}%</span>
+    </div>`;
+  }
+
+  function showLoading(msg) {
+    stateBox.style.display = 'block';
+    stateInner.innerHTML   = `<div class="spinner"></div><p>${esc(msg)}</p>`;
+    resultsEl.innerHTML    = '';
+    seedBar.style.display  = 'none';
+  }
+
+  function showEmpty(msg) {
+    stateBox.style.display = 'block';
+    stateInner.innerHTML   = `<p style="font-size:2rem;margin-bottom:.5rem">&#8212;</p><p>${esc(msg)}</p>`;
+    resultsEl.innerHTML    = '';
+    seedBar.style.display  = 'none';
+  }
+
+  function showError(msg) {
+    stateBox.style.display = 'block';
+    stateInner.innerHTML   = `<p style="font-size:2rem;color:var(--red);margin-bottom:.5rem">!</p><p style="color:var(--red)">${esc(msg)}</p>`;
+    resultsEl.innerHTML    = '';
+    seedBar.style.display  = 'none';
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') discover(); });
+  btn.addEventListener('click', discover);
+
+})();
+</script>
+  const btn         = document.getElementById('search-btn');
+  const resultsEl   = document.getElementById('results');
+  const stateBox    = document.getElementById('state-box');
+  const stateInner  = document.getElementById('state-inner');
+  const seedBar     = document.getElementById('seed-bar');
+  const seedNameEl  = document.getElementById('seed-name');
+  const seedCountEl = document.getElementById('seed-count');
+
+  /* ── Slider wiring ── */
+  function wireSlider(id) {
+    const el = document.getElementById(id);
+    el.addEventListener('input', () => {
+      document.getElementById(id + '-val').textContent = el.value + '%';
+    });
+  }
+  wireSlider('w-sim');
+  wireSlider('w-listen');
+  wireSlider('w-genre');
+  wireSlider('w-momentum');
+
+  document.getElementById('pop-ceiling').addEventListener('input', e => {
+    document.getElementById('pop-val').textContent = e.target.value;
+  });
+
   /* ── Last.fm API helper ──
      Last.fm returns JSON via a simple GET with your API key.
      No auth token needed — just the key in the query string.
