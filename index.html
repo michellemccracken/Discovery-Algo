@@ -441,7 +441,7 @@ footer a { color: var(--text-3); text-decoration: underline; text-underline-offs
           <span class="signal-name">Listener behaviour</span>
           <span class="signal-val" id="w-listen-val">35%</span>
         </div>
-        <p class="signal-desc">Relative listener count — rewards artists with a meaningful but not massive audience.</p>
+        <p class="signal-desc">Underground reward curve — actively scores artists in the 10k–150k listener sweet spot highest. Below 1k or above ceiling = penalised.</p>
         <input type="range" id="w-listen" min="0" max="100" value="35" step="1">
       </div>
 
@@ -470,7 +470,7 @@ footer a { color: var(--text-3); text-decoration: underline; text-underline-offs
           <span class="signal-name">Popularity ceiling</span>
           <span class="signal-val" id="pop-val">70</span>
         </div>
-        <p class="signal-desc">Artists above this listener percentile are penalised. Lower = more underground.</p>
+        <p class="signal-desc">Hard listener ceiling — artists above this are removed from the pool entirely before scoring. Lower = stricter underground filter.</p>
         <input type="range" id="pop-ceiling" min="10" max="100" value="70" step="1">
         <div class="pop-labels"><span>Underground</span><span>Mainstream OK</span></div>
       </div>
@@ -567,23 +567,26 @@ footer a { color: var(--text-3); text-decoration: underline; text-underline-offs
      match score will be high. This is our strongest signal.
   */
 
-  /* ── SIGNAL 2: Listener behaviour ──
-     Last.fm exposes raw listener counts per artist. We use this
-     to score artists relative to the seed — rewarding those with
-     a meaningful audience but penalising those who are too massive.
-     We normalise by dividing candidate listeners by seed listeners,
-     then apply the popularity ceiling as a soft cap.
+  /* ── SIGNAL 2: Underground reward curve ──
+     Rather than penalising big artists, we actively reward
+     artists in the discovery sweet spot: known enough to have
+     meaningful data, unknown enough to be a genuine find.
+
+     Scoring curve:
+       < 1k listeners    → 0.1  (too obscure, unreliable data)
+       1k – 10k          → 0.5  (very underground, solid find)
+       10k – 150k        → 1.0  (sweet spot — this is the target)
+       150k – 500k       → 0.5  (getting mainstream)
+       > 500k            → filtered out before scoring (hard cut)
+
+     This is an inverted U-curve centred on ~75k listeners.
   */
-  function listenerScore(candidateListeners, seedListeners, ceiling) {
-    if (!seedListeners) return 0.5;
-    // Express candidate as a fraction of seed's audience
-    const ratio = candidateListeners / seedListeners;
-    // Ceiling maps to a ratio threshold — above ceiling/100, penalise
-    const ceilRatio = ceiling / 100;
-    if (ratio > ceilRatio * 3) return 0.1;   // way too big
-    if (ratio > ceilRatio)     return 0.4;   // over ceiling, partial penalty
-    if (ratio < 0.001)         return 0.2;   // too obscure to be useful
-    return Math.min(1, ratio / ceilRatio);   // sweet spot: scales 0→1
+  function undergroundScore(listeners) {
+    if (listeners < 1000)   return 0.1;
+    if (listeners < 10000)  return 0.5;
+    if (listeners < 150000) return 1.0;
+    if (listeners < 500000) return 0.5;
+    return 0.1; // shouldn't reach here after hard filter
   }
 
   /* ── SIGNAL 3: Genre proximity (Jaccard) ──
@@ -630,17 +633,14 @@ footer a { color: var(--text-3); text-decoration: underline; text-underline-offs
     return Math.min(1, playsPerListener / 80);
   }
 
-  /* ── Popularity penalty (sigmoid) ──
-     Rather than a hard cutoff, we apply a smooth sigmoid curve.
-     Artists well below the ceiling score near 1.0.
-     Artists well above it score near 0.0.
-     The transition is gradual, not a cliff.
+  /* ── Hard filter threshold ──
+     Any artist above this listener count is removed from the
+     candidate pool entirely before scoring starts.
+     The slider maps 10–100 to listener counts 50k–2M.
   */
-  function popPenalty(candidateListeners, seedListeners, ceiling) {
-    const ratio    = candidateListeners / (seedListeners || 1);
-    const ceilRatio = ceiling / 100;
-    const k = 8; // steepness of the curve
-    return 1 / (1 + Math.exp(k * (ratio - ceilRatio)));
+  function listenerCeiling(sliderVal) {
+    // slider 10 = 50k listeners, slider 100 = 2M listeners
+    return Math.round(50000 + (sliderVal - 10) / 90 * 1950000);
   }
 
   /* ── Diversity pass ──
@@ -707,51 +707,87 @@ footer a { color: var(--text-3); text-decoration: underline; text-underline-offs
       const seedListeners = parseInt(seed.stats.listeners) || 1;
       const seedTags = (seed.tags.tag || []).slice(0, 5).map(t => t.name);
 
-      showLoading('Found ' + seedName + ' — fetching similar artists…');
+      showLoading('Found ' + seedName + ' — building discovery pool…');
 
-      /* STEP B: get similar artists
-         artist.getSimilar returns up to 50 similar artists,
-         each with a match score 0–1. This is our candidate pool.
-         We take the top 20 to keep scoring fast.
-      */
-      const simData    = await lfm('method=artist.getSimilar&artist=' + encodeURIComponent(seedName) + '&limit=20');
-      const similarRaw = simData.similarartists.artist || [];
+      const ceiling = listenerCeiling(parseInt(document.getElementById('pop-ceiling').value));
 
-      if (!similarRaw.length) {
-        showEmpty('No similar artists found for "' + seedName + '". Try a more well-known artist.');
+      /* STEP B: first-degree similar artists */
+      const simData     = await lfm('method=artist.getSimilar&artist=' + encodeURIComponent(seedName) + '&limit=20');
+      const firstDegree = simData.similarartists.artist || [];
+
+      /* STEP C: second-degree traversal + tag-based pool */
+      showLoading('Going deeper — fetching second-degree connections…');
+
+      const [secondDegreeResults, tagResults] = await Promise.all([
+        Promise.all(
+          firstDegree.slice(0, 8).map(a =>
+            lfm('method=artist.getSimilar&artist=' + encodeURIComponent(a.name) + '&limit=10')
+              .then(d => d.similarartists.artist || [])
+              .catch(() => [])
+          )
+        ),
+        Promise.all(
+          seedTags.slice(0, 2).map(tag =>
+            lfm('method=tag.gettopartists&tag=' + encodeURIComponent(tag) + '&limit=20')
+              .then(d => (d.topartists.artist || []).map(a => ({ name: a.name, match: 0.5 })))
+              .catch(() => [])
+          )
+        )
+      ]);
+
+      // Merge all sources into one deduplicated pool
+      const allCandidates = new Map();
+
+      for (const a of firstDegree) {
+        if (!allCandidates.has(a.name.toLowerCase()))
+          allCandidates.set(a.name.toLowerCase(), { name: a.name, match: parseFloat(a.match) || 0.5, source: 'first' });
+      }
+      for (const group of secondDegreeResults) {
+        for (const a of group) {
+          const key = a.name.toLowerCase();
+          if (!allCandidates.has(key))
+            allCandidates.set(key, { name: a.name, match: (parseFloat(a.match) || 0.5) * 0.8, source: 'second' });
+        }
+      }
+      for (const group of tagResults) {
+        for (const a of group) {
+          const key = a.name.toLowerCase();
+          if (!allCandidates.has(key))
+            allCandidates.set(key, { name: a.name, match: 0.4, source: 'tag' });
+        }
+      }
+
+      allCandidates.delete(seedName.toLowerCase());
+      const rawPool = [...allCandidates.values()];
+
+      showLoading('Filtering to underground acts across ' + rawPool.length + ' candidates…');
+
+      /* STEP D: fetch full artist info, then hard-filter above ceiling */
+      const infoResults = await Promise.all(
+        rawPool.map(a =>
+          lfm('method=artist.getInfo&artist=' + encodeURIComponent(a.name))
+            .then(d => ({
+              name:      d.artist.name,
+              match:     a.match,
+              source:    a.source,
+              listeners: parseInt(d.artist.stats.listeners) || 0,
+              playcount: parseInt(d.artist.stats.playcount) || 0,
+              tags:      (d.artist.tags.tag || []).slice(0, 5).map(t => t.name),
+              url:       d.artist.url,
+              image:     (d.artist.image || []).find(i => i.size === 'medium')?.['#text'] || '',
+            }))
+            .catch(() => null)
+        )
+      );
+
+      const candidates = infoResults.filter(c => c && c.listeners > 0 && c.listeners <= ceiling);
+
+      if (!candidates.length) {
+        showEmpty('No underground artists found. Try raising the popularity ceiling or a different seed.');
         return;
       }
 
-      showLoading('Scoring ' + similarRaw.length + ' candidates…');
-
-      /* STEP C: fetch full info for each candidate (tags + listener count)
-         We need artist.getInfo for each candidate to get their tags
-         and listener count. We fire all requests in parallel with
-         Promise.all so this takes one round-trip time, not 20.
-      */
-      const candidateData = await Promise.all(
-        similarRaw.map(async (a) => {
-          try {
-            const info = await lfm('method=artist.getInfo&artist=' + encodeURIComponent(a.name));
-            return {
-              name:          info.artist.name,
-              match:         parseFloat(a.match) || 0,
-              listeners:     parseInt(info.artist.stats.listeners) || 0,
-              weeklyListeners: parseInt(info.artist.stats.userplaycount) || 0,
-              playcount:     parseInt(info.artist.stats.playcount) || 0,
-              tags:          (info.artist.tags.tag || []).slice(0, 5).map(t => t.name),
-              url:           info.artist.url,
-              image:         (info.artist.image || []).find(i => i.size === 'medium')?.['#text'] || '',
-            };
-          } catch (e) {
-            return null; // skip artists that error
-          }
-        })
-      );
-
-      const candidates = candidateData.filter(Boolean);
-
-      /* STEP D: read slider weights and normalise to sum to 1.0 */
+      /* STEP E: read slider weights and normalise to sum to 1.0 */
       const wRaw = {
         sim:      parseInt(document.getElementById('w-sim').value),
         listen:   parseInt(document.getElementById('w-listen').value),
@@ -766,20 +802,20 @@ footer a { color: var(--text-3); text-decoration: underline; text-underline-offs
         momentum: wRaw.momentum / wSum,
       };
 
-      const ceiling = parseInt(document.getElementById('pop-ceiling').value);
-
-      /* STEP E: score each candidate — all data already in memory, no extra calls */
+      /* STEP F: score each candidate */
       const scored = candidates.map(c => {
         const simScore      = c.match;
-        const listenScore   = listenerScore(c.listeners, seedListeners, ceiling);
+        const listenScore   = undergroundScore(c.listeners);
         const genreScore    = jaccard(seedTags, c.tags);
         const momentumScore = calcMomentum(c.listeners, c.playcount);
-        const penalty       = popPenalty(c.listeners, seedListeners, ceiling);
 
-        const rawScore   = w.sim * simScore + w.listen * listenScore + w.genre * genreScore + w.momentum * momentumScore;
-        const finalScore = rawScore * penalty;
+        // Small bonus for deeper discoveries — harder to surface, worth rewarding
+        const sourceBonus = c.source === 'first' ? 1.0 : c.source === 'second' ? 1.05 : 1.08;
 
-        return { ...c, simScore, listenScore, genreScore, momentumScore, rawScore, finalScore, tags: c.tags };
+        const rawScore   = (w.sim * simScore + w.listen * listenScore + w.genre * genreScore + w.momentum * momentumScore) * sourceBonus;
+        const finalScore = rawScore;
+
+        return { ...c, simScore, listenScore, genreScore, momentumScore, rawScore, finalScore };
       });
 
       /* STEP F: sort by final score descending */
@@ -795,7 +831,7 @@ footer a { color: var(--text-3); text-decoration: underline; text-underline-offs
       seedNameEl.textContent  = seedName;
       seedCountEl.textContent = final.length + ' discoveries';
       resultsEl.innerHTML     = '';
-      final.forEach(item => resultsEl.appendChild(buildCard(item, seedName, seedListeners)));
+      final.forEach(item => resultsEl.appendChild(buildCard(item, seedName)));
 
     } catch (err) {
       showError(err.message || 'Something went wrong. Try another artist name.');
