@@ -629,6 +629,8 @@ footer a { color: var(--text-3); text-decoration: underline; text-underline-offs
     if (playsPerListener > 200) return 0.2;
     return Math.min(1, playsPerListener / 80);
   }
+
+  /* ── Popularity penalty (sigmoid) ──
      Rather than a hard cutoff, we apply a smooth sigmoid curve.
      Artists well below the ceiling score near 1.0.
      Artists well above it score near 0.0.
